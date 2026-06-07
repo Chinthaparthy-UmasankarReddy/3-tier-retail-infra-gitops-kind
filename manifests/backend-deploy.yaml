@@ -17,15 +17,19 @@ spec:
     spec:
       containers:
       - name: api
-        image: umasankar33/backend:1
+        image: umasankar33/backendssl:1
         ports:
         - containerPort: 8080
           name: api-port
         env:
+        - name: NODE_ENV
+          value: "local"  # 👈 Activates our new code override path!
         - name: DB_HOST
           value: "local-postgres-service.production.svc.cluster.local"
         - name: DB_NAME
           value: "retail_prod"
+        - name: DB_PORT
+          value: "5432" 
         - name: DB_USER
           valueFrom:
             secretKeyRef:
