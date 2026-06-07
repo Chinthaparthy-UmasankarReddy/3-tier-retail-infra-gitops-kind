@@ -16,4 +16,6 @@ spec:
     automated:
       prune: true
       selfHeal: true
-    createNamespace: true
+    # 🔧 FIX: Shifted createNamespace into the correct syncOptions array mapping layer
+    syncOptions:
+      - CreateNamespace=true
