@@ -4,7 +4,6 @@ metadata:
   name: postgres-init-script
   namespace: production
 data:
-  # 📝 This configures your tables and seeds your items automatically on startup
   init.sql: |
     CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -41,7 +40,6 @@ spec:
         app: local-postgres
     spec:
       containers:
-      # 🗄️ Standard, vanilla PostgreSQL running on default port 5432 safely WITHOUT SSL
       - name: postgres
         image: postgres:15-alpine
         ports:
@@ -52,8 +50,12 @@ spec:
           value: "retail_prod"
         - name: POSTGRES_USER
           value: "dbadmin"
+        # 🔧 FIX: Force Postgres to read the exact same password secret key the backend uses
         - name: POSTGRES_PASSWORD
-          value: "ChangeThisValueViaParameterStoreOrESO"
+          valueFrom:
+            secretKeyRef:
+              name: app-db-credentials
+              key: DB_PASSWORD
         volumeMounts:
         - name: init-volume
           mountPath: /docker-entrypoint-initdb.d

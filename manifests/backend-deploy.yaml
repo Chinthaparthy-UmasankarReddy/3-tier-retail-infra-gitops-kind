@@ -40,11 +40,6 @@ spec:
             secretKeyRef:
               name: app-db-credentials
               key: DB_PASSWORD
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: app-db-credentials
-              key: DB_PASSWORD
         livenessProbe:
           tcpSocket:
             port: 8080
