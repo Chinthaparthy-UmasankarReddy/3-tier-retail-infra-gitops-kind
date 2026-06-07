@@ -22,10 +22,9 @@ spec:
         - containerPort: 80
           name: http
         env:
-        - name: REACT_APP_API_URL
-          value: "http://localhost:5000"
-        - name: NODE_BE_URL
-          value: "http://localhost:5000"
+        # 🔄 CHANGE THIS: Update to the environment variable your frontend code uses to look for the API
+        - name: REACT_APP_API_BASE_URL 
+          value: "http://localhost:5000" # 🔌 Forces the UI to fetch data straight from your active local backend proxy window!
         resources:
           limits:
             cpu: "200m"
