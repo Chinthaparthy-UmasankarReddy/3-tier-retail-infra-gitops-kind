@@ -22,21 +22,20 @@ spec:
         - containerPort: 8080
           name: api-port
         env:
-        # 🔌 THE OVERRIDE: We construct an absolute URI string that enforces unencrypted database handshakes
-        - name: DATABASE_URL
-          value: "postgresql://dbadmin:ChangeThisValueViaParameterStoreOrESO@local-postgres-service.production.svc.cluster.local:5432/retail_prod?sslmode=disable"
-        # Keep your existing individual variable tracks for safety handles
         - name: DB_HOST
           value: "local-postgres-service.production.svc.cluster.local"
         - name: DB_NAME
           value: "retail_prod"
-        - name: PGSSLMODE
-          value: "disable"
         - name: DB_USER
           valueFrom:
             secretKeyRef:
               name: app-db-credentials
               key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-db-credentials
+              key: DB_PASSWORD
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
