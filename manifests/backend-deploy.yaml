@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: 154290454465.dkr.ecr.ap-south-1.amazonaws.com/retail-backend:latest
+        image: umasankar33/backend:1
         ports:
         - containerPort: 8080
           name: api-port
