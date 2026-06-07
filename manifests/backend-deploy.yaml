@@ -17,20 +17,21 @@ spec:
     spec:
       containers:
       - name: api
-        image: umasankar33/backend:1
+        image: 154290454465.dkr.ecr.ap-south-1.amazonaws.com/retail-backend:latest
         ports:
         - containerPort: 8080
           name: api-port
         env:
+        # 🔌 THE OVERRIDE: We construct an absolute URI string that enforces unencrypted database handshakes
+        - name: DATABASE_URL
+          value: "postgresql://dbadmin:ChangeThisValueViaParameterStoreOrESO@local-postgres-service.production.svc.cluster.local:5432/retail_prod?sslmode=disable"
+        # Keep your existing individual variable tracks for safety handles
         - name: DB_HOST
           value: "local-postgres-service.production.svc.cluster.local"
         - name: DB_NAME
           value: "retail_prod"
-        # 🔧 FIX: Instruct the database client driver to skip SSL handshakes locally
         - name: PGSSLMODE
           value: "disable"
-        - name: PGSSL
-          value: "false"
         - name: DB_USER
           valueFrom:
             secretKeyRef:
@@ -58,16 +59,3 @@ spec:
           requests:
             cpu: "150m"
             memory: "128Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: retail-backend-service
-  namespace: production
-spec:
-  ports:
-  - port: 8080
-    targetPort: 8080
-    protocol: TCP
-  selector:
-    app: retail-backend
