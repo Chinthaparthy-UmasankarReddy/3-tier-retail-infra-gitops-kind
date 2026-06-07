@@ -26,6 +26,11 @@ spec:
           value: "local-postgres-service.production.svc.cluster.local"
         - name: DB_NAME
           value: "retail_prod"
+        # 🔧 FIX: Instruct the database client driver to skip SSL handshakes locally
+        - name: PGSSLMODE
+          value: "disable"
+        - name: PGSSL
+          value: "false"
         - name: DB_USER
           valueFrom:
             secretKeyRef:
