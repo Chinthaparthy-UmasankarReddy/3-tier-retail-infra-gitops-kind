@@ -4,7 +4,7 @@ metadata:
   name: postgres-init-script
   namespace: production
 data:
-  # 📝 Seeds your catalog data immediately when the database starts
+  # 📝 This configures your tables and seeds your items automatically on startup
   init.sql: |
     CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -22,28 +22,6 @@ data:
     ('FRUIT-MNG-003', 'Fresh Alphonso Mangoes', 'Sweet seasonal mangoes.', 450.00, 'https://images.unsplash.com/photo-1553279768-865429fa0078', 'Fruits'),
     ('GROC-ATTA-004', 'Whole Wheat Atta (5kg)', 'High-fiber natural flour.', 260.00, 'https://images.unsplash.com/photo-1509440159596-0249088772ff', 'Groceries')
     ON CONFLICT (sku) DO NOTHING;
-
-  # ⚙️ NGINX configuration to terminate SSL and proxy traffic to Postgres on localhost
-  nginx-ssl-proxy.conf: |
-    user nginx;
-    worker_processes auto;
-    error_log /var/log/nginx/error.log info;
-    pid /var/run/nginx.pid;
-
-    events {
-        worker_connections 1024;
-    }
-
-    stream {
-        server {
-            listen 5432 ssl;
-            proxy_pass 127.0.0.1:5433; # Forwards decrypted data to Postgres sitting on 5433
-
-            ssl_certificate /etc/nginx/certs/tls.crt;
-            ssl_certificate_key /etc/nginx/certs/tls.key;
-            ssl_protocols TLSv1.2 TLSv1.3;
-        }
-    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -62,44 +40,13 @@ spec:
       labels:
         app: local-postgres
     spec:
-      # 🛡️ An initContainer that creates standard dummy SSL certificates for NGINX (Not Postgres)
-      initContainers:
-      - name: proxy-cert-generator
-        image: alpine:latest
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          apk add --no-cache openssl
-          mkdir -p /etc/nginx/certs
-          openssl req -new -x509 -days 3650 -nodes -text \
-            -out /etc/nginx/certs/tls.crt \
-            -keyout /etc/nginx/certs/tls.key \
-            -subj "/CN=local-postgres-service"
-        volumeMounts:
-        - name: cert-vol
-          mountPath: /etc/nginx/certs
-
       containers:
-      # Container A: The NGINX SSL Proxy (Listens on standard port 5432 with SSL enabled)
-      - name: ssl-proxy
-        image: nginx:alpine
-        ports:
-        - containerPort: 5432
-          name: proxy-port
-        command: ["nginx", "-g", "daemon off;"]
-        volumeMounts:
-        - name: config-vol
-          mountPath: /etc/nginx/nginx.conf
-          subPath: nginx-ssl-proxy.conf
-        - name: cert-vol
-          mountPath: /etc/nginx/certs
-
-      # Container B: Vanilla Postgres Engine (Listens safely on port 5433 WITHOUT SSL)
+      # 🗄️ Standard, vanilla PostgreSQL running on default port 5432 safely WITHOUT SSL
       - name: postgres
         image: postgres:15-alpine
         ports:
-        - containerPort: 5433
-          name: db-port
+        - containerPort: 5432
+          name: postgres
         env:
         - name: POSTGRES_DB
           value: "retail_prod"
@@ -107,12 +54,9 @@ spec:
           value: "dbadmin"
         - name: POSTGRES_PASSWORD
           value: "ChangeThisValueViaParameterStoreOrESO"
-        command: ["docker-entrypoint.sh"]
-        args: ["postgres", "-p", "5433"] # Shifts backend native execution port to 5433
         volumeMounts:
-        - name: config-vol
-          mountPath: /docker-entrypoint-initdb.d/init.sql
-          subPath: init.sql
+        - name: init-volume
+          mountPath: /docker-entrypoint-initdb.d
         resources:
           limits:
             cpu: "300m"
@@ -120,13 +64,10 @@ spec:
           requests:
             cpu: "150m"
             memory: "128Mi"
-
       volumes:
-      - name: config-vol
+      - name: init-volume
         configMap:
           name: postgres-init-script
-      - name: cert-vol
-        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
