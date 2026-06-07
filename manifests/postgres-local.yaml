@@ -15,6 +15,31 @@ spec:
       labels:
         app: local-postgres
     spec:
+      # 1. 🛠️ This temporary worker runs first to create valid self-signed SSL certs
+      initContainers:
+      - name: ssl-cert-generator
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          apk add --no-cache openssl
+          mkdir -p /var/lib/postgresql/data/certs
+          
+          # Generate explicit self-signed RSA certificates
+          openssl req -new -x509 -days 3650 -nodes -text \
+            -out /var/lib/postgresql/data/certs/server.crt \
+            -keyout /var/lib/postgresql/data/certs/server.key \
+            -subj "/CN=local-postgres-service"
+          
+          # Enforce mandatory strict PostgreSQL permission masks
+          chmod 0600 /var/lib/postgresql/data/certs/server.key
+          chmod 0644 /var/lib/postgresql/data/certs/server.crt
+          chown -R 999:999 /var/lib/postgresql/data/certs
+        volumeMounts:
+        - name: pg-data
+          mountPath: /var/lib/postgresql/data
+
+      # 2. 🗄️ The primary PostgreSQL server engine
       containers:
       - name: postgres
         image: postgres:15-alpine
@@ -28,17 +53,18 @@ spec:
           value: "dbadmin"
         - name: POSTGRES_PASSWORD
           value: "ChangeThisValueViaParameterStoreOrESO"
-        # 🔧 FIXED: Use standard postgres user to start up and read internal default configuration profiles
         command: ["docker-entrypoint.sh"]
         args:
         - "postgres"
         - "-c"
         - "ssl=on"
-        # 🛡️ Pointing directly to the built-in, pre-generated internal fallback cert infrastructure
         - "-c"
-        - "ssl_cert_file=/var/lib/postgresql/data/server.crt"
+        - "ssl_cert_file=/var/lib/postgresql/data/certs/server.crt"
         - "-c"
-        - "ssl_key_file=/var/lib/postgresql/data/server.key"
+        - "ssl_key_file=/var/lib/postgresql/data/certs/server.key"
+        volumeMounts:
+        - name: pg-data
+          mountPath: /var/lib/postgresql/data
         resources:
           limits:
             cpu: "500m"
@@ -46,6 +72,11 @@ spec:
           requests:
             cpu: "250m"
             memory: "256Mi"
+
+      # 3. 💾 Shared internal scratch volume to persist the cert files between containers
+      volumes:
+      - name: pg-data
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
