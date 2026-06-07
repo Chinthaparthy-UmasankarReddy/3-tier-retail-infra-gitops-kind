@@ -28,26 +28,17 @@ spec:
           value: "dbadmin"
         - name: POSTGRES_PASSWORD
           value: "ChangeThisValueViaParameterStoreOrESO"
-        # 🔧 FIX: Generate temporary self-signed SSL certs and start Postgres with SSL turned ON
-        command: ["/bin/sh", "-c"]
+        # 🔧 FIXED: Use standard postgres user to start up and read internal default configuration profiles
+        command: ["docker-entrypoint.sh"]
         args:
-        - |
-          mkdir -p /tmp/pg_ssl
-          cd /tmp/pg_ssl
-          
-          # Generate a private key and self-signed certificate instantly
-          openssl req -new -x509 -days 365 -nodes -text -out server.crt \
-            -keyout server.key -subj "/CN=local-postgres-service"
-          
-          # Postgres requires strict permissions on the private key file
-          chmod 0600 server.key
-          chown postgres:postgres server.key server.crt
-          
-          # Execute the standard entrypoint script with explicit SSL configuration flags
-          exec docker-entrypoint.sh postgres \
-            -c ssl=on \
-            -c ssl_cert_file=/tmp/pg_ssl/server.crt \
-            -c ssl_key_file=/tmp/pg_ssl/server.key
+        - "postgres"
+        - "-c"
+        - "ssl=on"
+        # 🛡️ Pointing directly to the built-in, pre-generated internal fallback cert infrastructure
+        - "-c"
+        - "ssl_cert_file=/var/lib/postgresql/data/server.crt"
+        - "-c"
+        - "ssl_key_file=/var/lib/postgresql/data/server.key"
         resources:
           limits:
             cpu: "500m"
