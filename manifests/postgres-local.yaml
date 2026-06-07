@@ -4,6 +4,7 @@ metadata:
   name: postgres-init-script
   namespace: production
 data:
+  # 📝 This seeds your catalog the exact millisecond the database is ready
   init.sql: |
     CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -52,14 +53,9 @@ spec:
           value: "dbadmin"
         - name: POSTGRES_PASSWORD
           value: "ChangeThisValueViaParameterStoreOrESO"
-        # 🔧 FIX: Run the native postgres engine but pass configuration parameters directly as flags!
-        args:
-        - "-c"
-        - "ssl=on"
-        - "-c"
-        - "ssl_cert_file=server.crt"
-        - "-c"
-        - "ssl_key_file=server.key"
+        # 🔧 THE FIXED SOLUTION: Pass configuration flags to the initdb engine safely
+        - name: POSTGRES_INITDB_ARGS
+          value: "--data-checksums -c ssl=on -c ssl_cert_file=server.crt -c ssl_key_file=server.key"
         volumeMounts:
         - name: init-volume
           mountPath: /docker-entrypoint-initdb.d
