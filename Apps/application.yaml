@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retail-3tier-local
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/Chinthaparthy-UmasankarReddy/3-tier-retail-infra-gitops-kind.git' # 🛠️ Update if your repository path is different
+    targetRevision: dev
+    path: manifests # The directory where your new full Kind YAML files are stored
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    createNamespace: true

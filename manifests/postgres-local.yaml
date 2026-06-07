@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-postgres
+  namespace: production
+  labels:
+    app: local-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: local-postgres
+  template:
+    metadata:
+      labels:
+        app: local-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "retail_prod"
+        - name: POSTGRES_USER
+          value: "dbadmin"
+        - name: POSTGRES_PASSWORD
+          value: "Change@1234567"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: local-postgres-service
+  namespace: production
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+  selector:
+    app: local-postgres
